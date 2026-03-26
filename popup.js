@@ -135,6 +135,9 @@ async function listMemos(pageSize = 10) {
 // AI API (OpenAI Compatible)
 // ============================================================
 
+// Current AI request abort controller
+let currentAiController = null;
+
 async function askAI(prompt, systemPrompt = '') {
   const settings = await loadSettings();
   
@@ -171,6 +174,104 @@ async function askAI(prompt, systemPrompt = '') {
   
   const data = await response.json();
   return data.choices[0]?.message?.content || '';
+}
+
+// Streaming AI request with typewriter effect
+async function askAIStream(prompt, systemPrompt = '', onChunk, onComplete) {
+  const settings = await loadSettings();
+  
+  if (!settings.aiBaseUrl || !settings.aiApiKey || !settings.aiModel) {
+    throw new Error('请先配置 AI 模型设置');
+  }
+  
+  // Abort previous request if exists
+  if (currentAiController) {
+    currentAiController.abort();
+  }
+  currentAiController = new AbortController();
+  
+  const url = `${settings.aiBaseUrl.replace(/\/$/, '')}/chat/completions`;
+  
+  const messages = [];
+  if (systemPrompt) {
+    messages.push({ role: 'system', content: systemPrompt });
+  }
+  messages.push({ role: 'user', content: prompt });
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${settings.aiApiKey}`
+    },
+    body: JSON.stringify({
+      model: settings.aiModel,
+      messages,
+      max_tokens: 2000,
+      temperature: 0.7,
+      stream: true
+    }),
+    signal: currentAiController.signal
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`AI 请求失败: ${response.status} - ${error}`);
+  }
+  
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullContent = '';
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') {
+            onComplete(fullContent);
+            return fullContent;
+          }
+          
+          try {
+            const json = JSON.parse(data);
+            const content = json.choices?.[0]?.delta?.content || '';
+            if (content) {
+              fullContent += content;
+              onChunk(fullContent);
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      onComplete(fullContent);
+      return fullContent;
+    }
+    throw error;
+  } finally {
+    currentAiController = null;
+  }
+  
+  onComplete(fullContent);
+  return fullContent;
+}
+
+// Abort current AI request
+function abortAiRequest() {
+  if (currentAiController) {
+    currentAiController.abort();
+    currentAiController = null;
+  }
 }
 
 // Get current page content
@@ -535,10 +636,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // Refresh history
   refreshBtn.addEventListener('click', loadHistory);
   
+  // Track if AI is currently streaming
+  let isStreaming = false;
+  
+  // Helper to update response with typewriter effect
+  function updateAiResponse(content, pageContent, isFinal = false) {
+    let displayContent = content;
+    if (isFinal && pageContent) {
+      displayContent = `${content}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
+    }
+    aiResponse.innerHTML = escapeHtml(displayContent);
+    // Auto scroll to bottom
+    aiResponse.scrollTop = aiResponse.scrollHeight;
+  }
+  
   // Summarize page
   summarizePageBtn.addEventListener('click', async () => {
     summarizePageBtn.disabled = true;
     summarizePageBtn.classList.add('loading');
+    isStreaming = true;
+    regenerateBtn.disabled = false; // Allow interruption
+    saveAiResponseBtn.disabled = true;
     
     try {
       const pageContent = await getCurrentPageContent();
@@ -556,14 +674,23 @@ ${pageContent.content}`;
       // Save request for regeneration
       lastAiRequest = { prompt, systemPrompt, pageContent };
       
-      const response = await askAI(prompt, systemPrompt);
-      const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
-      aiResponse.innerHTML = escapeHtml(responseWithRef);
-      regenerateBtn.disabled = false; saveAiResponseBtn.disabled = false;
+      await askAIStream(
+        prompt,
+        systemPrompt,
+        (content) => updateAiResponse(content, null),
+        (finalContent) => {
+          updateAiResponse(finalContent, pageContent, true);
+          saveAiResponseBtn.disabled = false;
+          isStreaming = false;
+        }
+      );
       
       showToast('总结完成', 'success');
     } catch (error) {
-      showToast(error.message, 'error');
+      if (error.name !== 'AbortError') {
+        showToast(error.message, 'error');
+      }
+      isStreaming = false;
     } finally {
       summarizePageBtn.classList.remove('loading');
       summarizePageBtn.disabled = false;
@@ -575,6 +702,9 @@ ${pageContent.content}`;
   todoExtractBtn.addEventListener('click', async () => {
     todoExtractBtn.disabled = true;
     todoExtractBtn.classList.add('loading');
+    isStreaming = true;
+    regenerateBtn.disabled = false;
+    saveAiResponseBtn.disabled = true;
     
     try {
       const pageContent = await getCurrentPageContent();
@@ -592,14 +722,23 @@ ${pageContent.content}`;
       // Save request for regeneration
       lastAiRequest = { prompt, systemPrompt, pageContent };
       
-      const response = await askAI(prompt, systemPrompt);
-      const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
-      aiResponse.innerHTML = escapeHtml(responseWithRef);
-      regenerateBtn.disabled = false; saveAiResponseBtn.disabled = false;
+      await askAIStream(
+        prompt,
+        systemPrompt,
+        (content) => updateAiResponse(content, null),
+        (finalContent) => {
+          updateAiResponse(finalContent, pageContent, true);
+          saveAiResponseBtn.disabled = false;
+          isStreaming = false;
+        }
+      );
       
       showToast('待办事项已提取', 'success');
     } catch (error) {
-      showToast(error.message, 'error');
+      if (error.name !== 'AbortError') {
+        showToast(error.message, 'error');
+      }
+      isStreaming = false;
     } finally {
       todoExtractBtn.classList.remove('loading');
       todoExtractBtn.disabled = false;
@@ -631,6 +770,9 @@ ${pageContent.content}`;
     const originalHtml = askAiBtn.innerHTML;
     askAiBtn.innerHTML = '<span class="spinner"></span>';
     askAiBtn.disabled = true;
+    isStreaming = true;
+    regenerateBtn.disabled = false;
+    saveAiResponseBtn.disabled = true;
     
     try {
       const pageContent = await getCurrentPageContent();
@@ -648,14 +790,23 @@ ${pageContent.content}
       // Save request for regeneration
       lastAiRequest = { prompt, systemPrompt: '', pageContent };
       
-      const response = await askAI(prompt);
-      const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
-      aiResponse.innerHTML = escapeHtml(responseWithRef);
-      regenerateBtn.disabled = false; saveAiResponseBtn.disabled = false;
+      await askAIStream(
+        prompt,
+        '',
+        (content) => updateAiResponse(content, null),
+        (finalContent) => {
+          updateAiResponse(finalContent, pageContent, true);
+          saveAiResponseBtn.disabled = false;
+          isStreaming = false;
+        }
+      );
       
       showToast('AI 回复已生成', 'success');
     } catch (error) {
-      showToast(error.message, 'error');
+      if (error.name !== 'AbortError') {
+        showToast(error.message, 'error');
+      }
+      isStreaming = false;
     } finally {
       askAiBtn.innerHTML = originalHtml;
       askAiBtn.disabled = false;
@@ -672,6 +823,21 @@ ${pageContent.content}
   
   // Regenerate response
   regenerateBtn.addEventListener('click', async () => {
+    // If currently streaming, abort it
+    if (isStreaming) {
+      abortAiRequest();
+      isStreaming = false;
+      showToast('已中断', 'warning');
+      
+      // Reset button states
+      summarizePageBtn.classList.remove('loading');
+      summarizePageBtn.disabled = false;
+      todoExtractBtn.classList.remove('loading');
+      todoExtractBtn.disabled = false;
+      saveAiResponseBtn.disabled = false;
+      return;
+    }
+    
     if (!lastAiRequest) {
       showToast('没有可重新生成的请求', 'warning');
       return;
@@ -679,16 +845,29 @@ ${pageContent.content}
     
     regenerateBtn.disabled = true;
     regenerateBtn.classList.add('loading');
+    isStreaming = true;
+    saveAiResponseBtn.disabled = true;
     
     try {
       const { prompt, systemPrompt, pageContent } = lastAiRequest;
-      const response = await askAI(prompt, systemPrompt);
-      const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
-      aiResponse.innerHTML = escapeHtml(responseWithRef);
+      
+      await askAIStream(
+        prompt,
+        systemPrompt,
+        (content) => updateAiResponse(content, null),
+        (finalContent) => {
+          updateAiResponse(finalContent, pageContent, true);
+          saveAiResponseBtn.disabled = false;
+          isStreaming = false;
+        }
+      );
       
       showToast('已重新生成', 'success');
     } catch (error) {
-      showToast(error.message, 'error');
+      if (error.name !== 'AbortError') {
+        showToast(error.message, 'error');
+      }
+      isStreaming = false;
     } finally {
       regenerateBtn.classList.remove('loading');
       regenerateBtn.disabled = false;
