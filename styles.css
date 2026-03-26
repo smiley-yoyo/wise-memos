@@ -367,6 +367,24 @@ body {
   border-radius: 4px;
 }
 
+.memo-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.memo-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.memo-link:hover {
+  color: var(--primary);
+}
+
 .loading-placeholder {
   display: flex;
   flex-direction: column;

@@ -331,15 +331,37 @@ async function loadHistory() {
       return;
     }
     
-    historyList.innerHTML = memos.map(memo => `
+    historyList.innerHTML = memos.map(memo => {
+      const memoId = memo.name ? memo.name.replace('memos/', '') : memo.uid;
+      return `
       <div class="memo-card">
         <div class="memo-content">${escapeHtml(memo.content)}</div>
         <div class="memo-meta">
           <span class="memo-time">${formatDate(memo.createTime)}</span>
-          <span class="memo-visibility">${getVisibilityLabel(memo.visibility)}</span>
+          <div class="memo-actions">
+            <span class="memo-visibility">${getVisibilityLabel(memo.visibility)}</span>
+            <a href="#" class="memo-link" data-memo-id="${memoId}" title="打开笔记">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+            </a>
+          </div>
         </div>
       </div>
-    `).join('');
+    `}).join('');
+    
+    // Add click handlers for memo links
+    historyList.querySelectorAll('.memo-link').forEach(link => {
+      link.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const memoId = link.dataset.memoId;
+        const settings = await loadSettings();
+        const baseUrl = settings.memosUrl.replace(/\/$/, '');
+        chrome.tabs.create({ url: `${baseUrl}/memos/${memoId}` });
+      });
+    });
   } catch (error) {
     historyList.innerHTML = `
       <div class="config-warning">
