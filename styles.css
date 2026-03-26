@@ -42,7 +42,7 @@ body {
   color: var(--text-primary);
   background: var(--bg-primary);
   width: 400px;
-  min-height: 500px;
+  height: 500px;
 }
 
 /* Container */
@@ -122,10 +122,12 @@ body {
 .tab-content {
   display: none;
   padding: 16px;
+  height: 100%;
 }
 
 .tab-content.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Toolbar */
@@ -174,18 +176,22 @@ body {
 /* Editor */
 .editor-container {
   margin-bottom: 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 #memoContent {
   width: 100%;
-  min-height: 180px;
+  flex: 1;
+  min-height: 120px;
   padding: 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 14px;
   line-height: 1.6;
-  resize: vertical;
+  resize: none;
   transition: var(--transition);
 }
 
@@ -411,6 +417,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 1;
 }
 
 .ai-quick-actions {
@@ -455,12 +462,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
 }
 
 .ai-response {
   padding: 12px;
-  min-height: 100px;
-  max-height: 200px;
+  flex: 1;
+  min-height: 60px;
   overflow-y: auto;
   background: var(--bg-secondary);
   border-radius: var(--border-radius);
