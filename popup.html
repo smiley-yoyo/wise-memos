@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wise Memos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="logo">📝 Wise Memos</h1>
+      <div class="header-actions">
+        <button id="settingsBtn" class="icon-btn" title="设置">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="compose">编写</button>
+      <button class="tab" data-tab="history">历史</button>
+      <button class="tab" data-tab="ai">AI助手</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Compose Tab -->
+      <section id="composeTab" class="tab-content active">
+        <!-- Markdown Toolbar -->
+        <div class="toolbar">
+          <button class="tool-btn" data-md="bold" title="粗体 (Ctrl+B)">
+            <strong>B</strong>
+          </button>
+          <button class="tool-btn" data-md="italic" title="斜体 (Ctrl+I)">
+            <em>I</em>
+          </button>
+          <button class="tool-btn" data-md="strikethrough" title="删除线">
+            <s>S</s>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button class="tool-btn" data-md="h1" title="一级标题">#</button>
+          <button class="tool-btn" data-md="h2" title="二级标题">##</button>
+          <button class="tool-btn" data-md="h3" title="三级标题">###</button>
+          <span class="toolbar-divider"></span>
+          <button class="tool-btn" data-md="ul" title="无序列表">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+          </button>
+          <button class="tool-btn" data-md="ol" title="有序列表">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="10" y1="6" x2="21" y2="6"></line>
+              <line x1="10" y1="12" x2="21" y2="12"></line>
+              <line x1="10" y1="18" x2="21" y2="18"></line>
+              <path d="M4 6h1v4"></path>
+              <path d="M4 10h2"></path>
+              <path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path>
+            </svg>
+          </button>
+          <button class="tool-btn" data-md="task" title="任务列表">☑</button>
+          <span class="toolbar-divider"></span>
+          <button class="tool-btn" data-md="code" title="行内代码">&lt;&gt;</button>
+          <button class="tool-btn" data-md="codeblock" title="代码块">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+          </button>
+          <button class="tool-btn" data-md="quote" title="引用">❝</button>
+          <span class="toolbar-divider"></span>
+          <button class="tool-btn" data-md="link" title="链接">🔗</button>
+          <button class="tool-btn" data-md="image" title="图片">🖼</button>
+          <button class="tool-btn" data-md="hr" title="分割线">─</button>
+        </div>
+
+        <!-- Editor -->
+        <div class="editor-container">
+          <textarea id="memoContent" placeholder="写下你的想法..." spellcheck="false"></textarea>
+        </div>
+
+        <!-- Visibility Select -->
+        <div class="options-row">
+          <select id="visibility" class="select-input">
+            <option value="PRIVATE">🔒 私有</option>
+            <option value="PROTECTED">🔐 仅登录用户</option>
+            <option value="PUBLIC">🌐 公开</option>
+          </select>
+          <div class="char-count">
+            <span id="charCount">0</span> 字符
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions">
+          <button id="clearBtn" class="btn btn-secondary">清空</button>
+          <button id="sendBtn" class="btn btn-primary">
+            <span class="btn-text">发送备忘</span>
+            <span class="btn-loading" style="display: none;">
+              <span class="spinner"></span>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <!-- History Tab -->
+      <section id="historyTab" class="tab-content">
+        <div class="history-header">
+          <span>最近 10 条备忘</span>
+          <button id="refreshBtn" class="icon-btn" title="刷新">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+        </div>
+        <div id="historyList" class="history-list">
+          <div class="loading-placeholder">
+            <span class="spinner"></span>
+            <span>加载中...</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Tab -->
+      <section id="aiTab" class="tab-content">
+        <div class="ai-section">
+          <div class="ai-quick-actions">
+            <button id="summarizePageBtn" class="btn btn-outline">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              总结当前页面
+            </button>
+          </div>
+          
+          <div class="ai-custom">
+            <label class="label">自定义问题</label>
+            <textarea id="aiQuestion" class="ai-input" placeholder="输入你想问AI的问题..."></textarea>
+            <button id="askAiBtn" class="btn btn-primary btn-full">
+              <span class="btn-text">询问 AI</span>
+              <span class="btn-loading" style="display: none;">
+                <span class="spinner"></span>
+              </span>
+            </button>
+          </div>
+
+          <div class="ai-response-section">
+            <label class="label">AI 回复</label>
+            <div id="aiResponse" class="ai-response">
+              <span class="placeholder-text">AI的回复将显示在这里</span>
+            </div>
+            <button id="saveAiResponseBtn" class="btn btn-secondary btn-full" style="display: none;">
+              保存为备忘
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>设置</h2>
+          <button id="closeSettingsBtn" class="icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Memos Settings -->
+          <fieldset class="settings-group">
+            <legend>Memos 配置</legend>
+            <div class="form-group">
+              <label for="memosUrl">实例地址</label>
+              <input type="url" id="memosUrl" placeholder="https://your-memos-instance.com" />
+            </div>
+            <div class="form-group">
+              <label for="memosApiKey">API Key</label>
+              <input type="password" id="memosApiKey" placeholder="你的 Access Token" />
+            </div>
+          </fieldset>
+
+          <!-- AI Settings -->
+          <fieldset class="settings-group">
+            <legend>AI 配置 (OpenAI 兼容格式)</legend>
+            <div class="form-group">
+              <label for="aiBaseUrl">Base URL</label>
+              <input type="url" id="aiBaseUrl" placeholder="https://api.openai.com/v1" />
+            </div>
+            <div class="form-group">
+              <label for="aiModel">模型名称</label>
+              <input type="text" id="aiModel" placeholder="gpt-4o-mini" />
+            </div>
+            <div class="form-group">
+              <label for="aiApiKey">API Key</label>
+              <input type="password" id="aiApiKey" placeholder="sk-..." />
+            </div>
+          </fieldset>
+        </div>
+        <div class="modal-footer">
+          <button id="saveSettingsBtn" class="btn btn-primary">保存设置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
