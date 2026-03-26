@@ -559,7 +559,7 @@ ${pageContent.content}`;
       const response = await askAI(prompt, systemPrompt);
       const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
       aiResponse.innerHTML = escapeHtml(responseWithRef);
-      aiResponseActions.style.display = 'flex';
+      regenerateBtn.disabled = false; saveAiResponseBtn.disabled = false;
       
       showToast('总结完成', 'success');
     } catch (error) {
@@ -595,7 +595,7 @@ ${pageContent.content}`;
       const response = await askAI(prompt, systemPrompt);
       const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
       aiResponse.innerHTML = escapeHtml(responseWithRef);
-      aiResponseActions.style.display = 'flex';
+      regenerateBtn.disabled = false; saveAiResponseBtn.disabled = false;
       
       showToast('待办事项已提取', 'success');
     } catch (error) {
@@ -651,7 +651,7 @@ ${pageContent.content}
       const response = await askAI(prompt);
       const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
       aiResponse.innerHTML = escapeHtml(responseWithRef);
-      aiResponseActions.style.display = 'flex';
+      regenerateBtn.disabled = false; saveAiResponseBtn.disabled = false;
       
       showToast('AI 回复已生成', 'success');
     } catch (error) {
