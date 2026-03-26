@@ -271,6 +271,7 @@ body {
 }
 
 .btn-secondary {
+  flex: 1;
   background: var(--bg-tertiary);
   color: var(--text-secondary);
 }
@@ -288,6 +289,12 @@ body {
 
 .btn-outline:hover {
   background: var(--bg-secondary);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-outline.active {
+  background: var(--primary-light);
   border-color: var(--primary);
   color: var(--primary);
 }
@@ -427,6 +434,100 @@ body {
 
 .ai-quick-actions .btn {
   flex: 1;
+  padding: 8px 6px;
+  font-size: 12px;
+}
+
+.ai-quick-actions .btn svg {
+  flex-shrink: 0;
+}
+
+/* Button loading state */
+.btn.loading {
+  pointer-events: none;
+  position: relative;
+  color: transparent !important;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  border-top-color: var(--primary);
+  animation: spin 0.8s linear infinite;
+}
+
+/* Custom Query Section */
+.ai-custom-query {
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.input-with-button {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+}
+
+.input-with-button textarea {
+  width: 100%;
+  padding: 10px 44px 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  resize: none;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.input-with-button textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.inline-submit-btn {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.inline-submit-btn:hover {
+  background: var(--primary-hover);
+}
+
+.inline-submit-btn:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.inline-submit-btn .spinner {
+  width: 14px;
+  height: 14px;
 }
 
 .ai-custom {
@@ -477,6 +578,17 @@ body {
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.ai-response-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+  flex: 1;
 }
 
 .placeholder-text {

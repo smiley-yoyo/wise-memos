@@ -439,7 +439,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const askAiBtn = document.getElementById('askAiBtn');
   const aiQuestion = document.getElementById('aiQuestion');
   const aiResponse = document.getElementById('aiResponse');
+  const aiResponseActions = document.getElementById('aiResponseActions');
   const saveAiResponseBtn = document.getElementById('saveAiResponseBtn');
+  const regenerateBtn = document.getElementById('regenerateBtn');
+  
+  // Track last AI request for regeneration
+  let lastAiRequest = null;
   
   // Tab switching
   document.querySelectorAll('.tab-icon').forEach(tab => {
@@ -533,8 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Summarize page
   summarizePageBtn.addEventListener('click', async () => {
     summarizePageBtn.disabled = true;
-    const originalHtml = summarizePageBtn.innerHTML;
-    summarizePageBtn.innerHTML = '<span class="spinner"></span> 处理中...';
+    summarizePageBtn.classList.add('loading');
     
     try {
       const pageContent = await getCurrentPageContent();
@@ -549,20 +553,73 @@ ${pageContent.content}`;
       
       const systemPrompt = '你是一个专业的内容总结助手。请用简洁、准确的语言总结用户提供的网页内容，提取关键信息和主要观点。';
       
+      // Save request for regeneration
+      lastAiRequest = { prompt, systemPrompt, pageContent };
+      
       const response = await askAI(prompt, systemPrompt);
-      aiResponse.innerHTML = escapeHtml(response);
-      saveAiResponseBtn.style.display = 'block';
+      const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
+      aiResponse.innerHTML = escapeHtml(responseWithRef);
+      aiResponseActions.style.display = 'flex';
       
       showToast('总结完成', 'success');
     } catch (error) {
       showToast(error.message, 'error');
     } finally {
-      summarizePageBtn.innerHTML = originalHtml;
+      summarizePageBtn.classList.remove('loading');
       summarizePageBtn.disabled = false;
     }
   });
   
-  // Ask AI
+  // Extract todos
+  const todoExtractBtn = document.getElementById('todoExtractBtn');
+  todoExtractBtn.addEventListener('click', async () => {
+    todoExtractBtn.disabled = true;
+    todoExtractBtn.classList.add('loading');
+    
+    try {
+      const pageContent = await getCurrentPageContent();
+      
+      const prompt = `请根据以下网页内容，提取并整理出待办事项列表。如果内容中没有明显的待办事项，请根据内容的主题和要点，推断出可能需要完成的任务或行动项：
+
+标题: ${pageContent.title}
+URL: ${pageContent.url}
+
+内容:
+${pageContent.content}`;
+      
+      const systemPrompt = '你是一个专业的任务整理助手。请从用户提供的内容中提取待办事项，使用 Markdown 任务列表格式（- [ ] 任务内容）。每个任务应该简洁明确、可执行。如果内容中没有明确的待办事项，请根据内容推断可能需要的行动项。';
+      
+      // Save request for regeneration
+      lastAiRequest = { prompt, systemPrompt, pageContent };
+      
+      const response = await askAI(prompt, systemPrompt);
+      const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
+      aiResponse.innerHTML = escapeHtml(responseWithRef);
+      aiResponseActions.style.display = 'flex';
+      
+      showToast('待办事项已提取', 'success');
+    } catch (error) {
+      showToast(error.message, 'error');
+    } finally {
+      todoExtractBtn.classList.remove('loading');
+      todoExtractBtn.disabled = false;
+    }
+  });
+  
+  // Custom query toggle
+  const customQueryBtn = document.getElementById('customQueryBtn');
+  const customQuerySection = document.getElementById('customQuerySection');
+  
+  customQueryBtn.addEventListener('click', () => {
+    const isHidden = customQuerySection.style.display === 'none';
+    customQuerySection.style.display = isHidden ? 'block' : 'none';
+    customQueryBtn.classList.toggle('active', isHidden);
+    if (isHidden) {
+      aiQuestion.focus();
+    }
+  });
+  
+  // Ask AI (custom query)
   askAiBtn.addEventListener('click', async () => {
     const question = aiQuestion.value.trim();
     
@@ -571,25 +628,70 @@ ${pageContent.content}`;
       return;
     }
     
-    const btnText = askAiBtn.querySelector('.btn-text');
-    const btnLoading = askAiBtn.querySelector('.btn-loading');
-    
-    btnText.style.display = 'none';
-    btnLoading.style.display = 'inline-flex';
+    const originalHtml = askAiBtn.innerHTML;
+    askAiBtn.innerHTML = '<span class="spinner"></span>';
     askAiBtn.disabled = true;
     
     try {
-      const response = await askAI(question);
-      aiResponse.innerHTML = escapeHtml(response);
-      saveAiResponseBtn.style.display = 'block';
+      const pageContent = await getCurrentPageContent();
+      
+      const prompt = `用户针对以下网页内容提出了问题，请回答：
+
+网页标题: ${pageContent.title}
+网页URL: ${pageContent.url}
+
+网页内容:
+${pageContent.content}
+
+用户问题: ${question}`;
+      
+      // Save request for regeneration
+      lastAiRequest = { prompt, systemPrompt: '', pageContent };
+      
+      const response = await askAI(prompt);
+      const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
+      aiResponse.innerHTML = escapeHtml(responseWithRef);
+      aiResponseActions.style.display = 'flex';
       
       showToast('AI 回复已生成', 'success');
     } catch (error) {
       showToast(error.message, 'error');
     } finally {
-      btnText.style.display = 'inline';
-      btnLoading.style.display = 'none';
+      askAiBtn.innerHTML = originalHtml;
       askAiBtn.disabled = false;
+    }
+  });
+  
+  // Enter to submit custom query
+  aiQuestion.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      askAiBtn.click();
+    }
+  });
+  
+  // Regenerate response
+  regenerateBtn.addEventListener('click', async () => {
+    if (!lastAiRequest) {
+      showToast('没有可重新生成的请求', 'warning');
+      return;
+    }
+    
+    regenerateBtn.disabled = true;
+    regenerateBtn.classList.add('loading');
+    
+    try {
+      const { prompt, systemPrompt, pageContent } = lastAiRequest;
+      const response = await askAI(prompt, systemPrompt);
+      const responseWithRef = `${response}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
+      aiResponse.innerHTML = escapeHtml(responseWithRef);
+      
+      showToast('已重新生成', 'success');
+    } catch (error) {
+      showToast(error.message, 'error');
+    } finally {
+      regenerateBtn.classList.remove('loading');
+      regenerateBtn.disabled = false;
     }
   });
   
