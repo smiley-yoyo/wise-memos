@@ -292,7 +292,7 @@ function applyMarkdown(textarea, action) {
 // Switch tabs
 function switchTab(tabName) {
   // Update tab buttons
-  document.querySelectorAll('.tab').forEach(tab => {
+  document.querySelectorAll('.tab-icon').forEach(tab => {
     tab.classList.toggle('active', tab.dataset.tab === tabName);
   });
   
@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveAiResponseBtn = document.getElementById('saveAiResponseBtn');
   
   // Tab switching
-  document.querySelectorAll('.tab').forEach(tab => {
+  document.querySelectorAll('.tab-icon').forEach(tab => {
     tab.addEventListener('click', () => switchTab(tab.dataset.tab));
   });
   
