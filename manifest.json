@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Wise Memos",
   "version": "1.0.0",
-  "description": "快速编写Markdown备忘录并发送到Memos实例，支持AI总结网页内容",
+  "description": "快速编写Markdown备忘录并发送到Memos实例，支持AI总结网页内容，支持API版本0.26.x",
   "icons": {
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
