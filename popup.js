@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
   MEMOS_API_KEY: 'memosApiKey',
   AI_BASE_URL: 'aiBaseUrl',
   AI_MODEL: 'aiModel',
-  AI_API_KEY: 'aiApiKey'
+  AI_API_KEY: 'aiApiKey',
+  LANGUAGE: 'language'
 };
 
 // ============================================================
@@ -24,6 +25,11 @@ function showToast(message, type = 'info') {
   setTimeout(() => {
     toast.className = 'toast';
   }, 3000);
+}
+
+// Show toast with i18n key
+function showToastI18n(key, type = 'info') {
+  showToast(i18n.t(key), type);
 }
 
 // Load settings from storage
@@ -44,33 +50,14 @@ async function saveSettings(settings) {
   });
 }
 
-// Format date
+// Format date - now delegated to i18n
 function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diff = now - date;
-  
-  if (diff < 60000) {
-    return '刚刚';
-  } else if (diff < 3600000) {
-    return `${Math.floor(diff / 60000)} 分钟前`;
-  } else if (diff < 86400000) {
-    return `${Math.floor(diff / 3600000)} 小时前`;
-  } else if (diff < 604800000) {
-    return `${Math.floor(diff / 86400000)} 天前`;
-  } else {
-    return date.toLocaleDateString('zh-CN');
-  }
+  return i18n.formatDate(dateStr);
 }
 
-// Visibility label
+// Visibility label - now delegated to i18n
 function getVisibilityLabel(visibility) {
-  const labels = {
-    'PRIVATE': '🔒 私有',
-    'PROTECTED': '🔐 仅登录用户',
-    'PUBLIC': '🌐 公开'
-  };
-  return labels[visibility] || visibility;
+  return i18n.getVisibilityLabel(visibility);
 }
 
 // ============================================================
@@ -81,7 +68,7 @@ async function createMemo(content, visibility = 'PRIVATE') {
   const settings = await loadSettings();
   
   if (!settings.memosUrl || !settings.memosApiKey) {
-    throw new Error('请先配置 Memos 实例地址和 API Key');
+    throw new Error(i18n.t('configureMemosFirst'));
   }
   
   const url = `${settings.memosUrl.replace(/\/$/, '')}/api/v1/memos`;
@@ -100,7 +87,7 @@ async function createMemo(content, visibility = 'PRIVATE') {
   
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`发送失败: ${response.status} - ${error}`);
+    throw new Error(`${i18n.t('sendFailed')}: ${response.status} - ${error}`);
   }
   
   return await response.json();
@@ -110,7 +97,7 @@ async function listMemos(pageSize = 10) {
   const settings = await loadSettings();
   
   if (!settings.memosUrl || !settings.memosApiKey) {
-    throw new Error('请先配置 Memos 实例地址和 API Key');
+    throw new Error(i18n.t('configureMemosFirst'));
   }
   
   const url = `${settings.memosUrl.replace(/\/$/, '')}/api/v1/memos?pageSize=${pageSize}`;
@@ -124,7 +111,7 @@ async function listMemos(pageSize = 10) {
   
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`获取失败: ${response.status} - ${error}`);
+    throw new Error(`${i18n.t('fetchFailed')}: ${response.status} - ${error}`);
   }
   
   const data = await response.json();
@@ -142,7 +129,7 @@ async function askAI(prompt, systemPrompt = '') {
   const settings = await loadSettings();
   
   if (!settings.aiBaseUrl || !settings.aiApiKey || !settings.aiModel) {
-    throw new Error('请先配置 AI 模型设置');
+    throw new Error(i18n.t('configureAiFirst'));
   }
   
   const url = `${settings.aiBaseUrl.replace(/\/$/, '')}/chat/completions`;
@@ -169,7 +156,7 @@ async function askAI(prompt, systemPrompt = '') {
   
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`AI 请求失败: ${response.status} - ${error}`);
+    throw new Error(`${i18n.t('aiRequestFailed')}: ${response.status} - ${error}`);
   }
   
   const data = await response.json();
@@ -181,7 +168,7 @@ async function askAIStream(prompt, systemPrompt = '', onChunk, onComplete) {
   const settings = await loadSettings();
   
   if (!settings.aiBaseUrl || !settings.aiApiKey || !settings.aiModel) {
-    throw new Error('请先配置 AI 模型设置');
+    throw new Error(i18n.t('configureAiFirst'));
   }
   
   // Abort previous request if exists
@@ -216,7 +203,7 @@ async function askAIStream(prompt, systemPrompt = '', onChunk, onComplete) {
   
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`AI 请求失败: ${response.status} - ${error}`);
+    throw new Error(`${i18n.t('aiRequestFailed')}: ${response.status} - ${error}`);
   }
   
   const reader = response.body.getReader();
@@ -279,7 +266,7 @@ async function getCurrentPageContent() {
   return new Promise((resolve, reject) => {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       if (!tabs[0]) {
-        reject(new Error('无法获取当前标签页'));
+        reject(new Error(i18n.t('cannotGetTab')));
         return;
       }
       
@@ -316,7 +303,7 @@ async function getCurrentPageContent() {
         
         resolve(results[0].result);
       } catch (error) {
-        reject(new Error('无法获取页面内容，请确保页面已加载完成'));
+        reject(new Error(i18n.t('cannotGetPageContent')));
       }
     });
   });
@@ -326,25 +313,29 @@ async function getCurrentPageContent() {
 // Markdown Toolbar Functions
 // ============================================================
 
-const markdownActions = {
-  bold: { prefix: '**', suffix: '**', placeholder: '粗体文本' },
-  italic: { prefix: '*', suffix: '*', placeholder: '斜体文本' },
-  strikethrough: { prefix: '~~', suffix: '~~', placeholder: '删除线文本' },
-  h1: { prefix: '# ', suffix: '', placeholder: '一级标题', lineStart: true },
-  h2: { prefix: '## ', suffix: '', placeholder: '二级标题', lineStart: true },
-  h3: { prefix: '### ', suffix: '', placeholder: '三级标题', lineStart: true },
-  ul: { prefix: '- ', suffix: '', placeholder: '列表项', lineStart: true },
-  ol: { prefix: '1. ', suffix: '', placeholder: '列表项', lineStart: true },
-  task: { prefix: '- [ ] ', suffix: '', placeholder: '任务项', lineStart: true },
-  code: { prefix: '`', suffix: '`', placeholder: '代码' },
-  codeblock: { prefix: '```\n', suffix: '\n```', placeholder: '代码块', multiline: true },
-  quote: { prefix: '> ', suffix: '', placeholder: '引用内容', lineStart: true },
-  link: { prefix: '[', suffix: '](url)', placeholder: '链接文本' },
-  image: { prefix: '![', suffix: '](url)', placeholder: '图片描述' },
-  hr: { prefix: '\n---\n', suffix: '', placeholder: '' }
-};
+// Markdown actions with i18n placeholders - will be initialized after i18n loads
+function getMarkdownActions() {
+  return {
+    bold: { prefix: '**', suffix: '**', placeholder: i18n.t('mdBold') },
+    italic: { prefix: '*', suffix: '*', placeholder: i18n.t('mdItalic') },
+    strikethrough: { prefix: '~~', suffix: '~~', placeholder: i18n.t('mdStrikethrough') },
+    h1: { prefix: '# ', suffix: '', placeholder: i18n.t('mdH1'), lineStart: true },
+    h2: { prefix: '## ', suffix: '', placeholder: i18n.t('mdH2'), lineStart: true },
+    h3: { prefix: '### ', suffix: '', placeholder: i18n.t('mdH3'), lineStart: true },
+    ul: { prefix: '- ', suffix: '', placeholder: i18n.t('mdList'), lineStart: true },
+    ol: { prefix: '1. ', suffix: '', placeholder: i18n.t('mdList'), lineStart: true },
+    task: { prefix: '- [ ] ', suffix: '', placeholder: i18n.t('mdTask'), lineStart: true },
+    code: { prefix: '`', suffix: '`', placeholder: i18n.t('mdCode') },
+    codeblock: { prefix: '```\n', suffix: '\n```', placeholder: i18n.t('mdCodeBlock'), multiline: true },
+    quote: { prefix: '> ', suffix: '', placeholder: i18n.t('mdQuote'), lineStart: true },
+    link: { prefix: '[', suffix: '](url)', placeholder: i18n.t('mdLink') },
+    image: { prefix: '![', suffix: '](url)', placeholder: i18n.t('mdImage') },
+    hr: { prefix: '\n---\n', suffix: '', placeholder: '' }
+  };
+}
 
 function applyMarkdown(textarea, action) {
+  const markdownActions = getMarkdownActions();
   const config = markdownActions[action];
   if (!config) return;
   
@@ -416,7 +407,7 @@ async function loadHistory() {
   historyList.innerHTML = `
     <div class="loading-placeholder">
       <span class="spinner"></span>
-      <span>加载中...</span>
+      <span>${i18n.t('loading')}</span>
     </div>
   `;
   
@@ -426,7 +417,7 @@ async function loadHistory() {
     if (memos.length === 0) {
       historyList.innerHTML = `
         <div class="empty-state">
-          <p>暂无备忘记录</p>
+          <p>${i18n.t('noMemos')}</p>
         </div>
       `;
       return;
@@ -441,7 +432,7 @@ async function loadHistory() {
           <span class="memo-time">${formatDate(memo.createTime)}</span>
           <div class="memo-actions">
             <span class="memo-visibility">${getVisibilityLabel(memo.visibility)}</span>
-            <a href="#" class="memo-link" data-memo-id="${memoId}" title="打开笔记">
+            <a href="#" class="memo-link" data-memo-id="${memoId}" title="${i18n.t('openMemo')}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                 <polyline points="15 3 21 3 21 9"></polyline>
@@ -472,7 +463,7 @@ async function loadHistory() {
           <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
         <p>${escapeHtml(error.message)}</p>
-        <button class="btn btn-primary" onclick="document.getElementById('settingsBtn').click()">前往设置</button>
+        <button class="btn btn-primary" onclick="document.getElementById('settingsBtn').click()">${i18n.t('goToSettings')}</button>
       </div>
     `;
   }
@@ -506,6 +497,12 @@ async function loadSettingsToForm() {
   document.getElementById('aiBaseUrl').value = settings.aiBaseUrl || '';
   document.getElementById('aiModel').value = settings.aiModel || '';
   document.getElementById('aiApiKey').value = settings.aiApiKey || '';
+  
+  // Set language selector
+  const langSelect = document.getElementById('languageSelect');
+  if (langSelect) {
+    langSelect.value = i18n.currentLang;
+  }
 }
 
 async function saveSettingsFromForm() {
@@ -518,7 +515,7 @@ async function saveSettingsFromForm() {
   };
   
   await saveSettings(settings);
-  showToast('设置已保存', 'success');
+  showToastI18n('settingsSaved', 'success');
   closeSettings();
 }
 
@@ -526,7 +523,11 @@ async function saveSettingsFromForm() {
 // Event Handlers
 // ============================================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize i18n first
+  await i18n.loadLanguagePreference();
+  i18n.updateUI();
+  
   const memoContent = document.getElementById('memoContent');
   const charCount = document.getElementById('charCount');
   const visibility = document.getElementById('visibility');
@@ -543,6 +544,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const aiResponseActions = document.getElementById('aiResponseActions');
   const saveAiResponseBtn = document.getElementById('saveAiResponseBtn');
   const regenerateBtn = document.getElementById('regenerateBtn');
+  const languageSelect = document.getElementById('languageSelect');
+  
+  // Language selector change handler
+  languageSelect.addEventListener('change', () => {
+    i18n.setLanguage(languageSelect.value);
+  });
   
   // Track last AI request for regeneration
   let lastAiRequest = null;
@@ -596,7 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const content = memoContent.value.trim();
     
     if (!content) {
-      showToast('请输入备忘内容', 'warning');
+      showToastI18n('enterContent', 'warning');
       return;
     }
     
@@ -609,7 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     try {
       await createMemo(content, visibility.value);
-      showToast('备忘已发送', 'success');
+      showToastI18n('memoSent', 'success');
       memoContent.value = '';
       charCount.textContent = '0';
     } catch (error) {
@@ -643,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateAiResponse(content, pageContent, isFinal = false) {
     let displayContent = content;
     if (isFinal && pageContent) {
-      displayContent = `${content}\n\n---\n📎 来源: [${pageContent.title}](${pageContent.url})`;
+      displayContent = `${content}\n\n---\n📎 ${i18n.t('source')}: [${pageContent.title}](${pageContent.url})`;
     }
     aiResponse.innerHTML = escapeHtml(displayContent);
     // Auto scroll to bottom
@@ -661,7 +668,16 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const pageContent = await getCurrentPageContent();
       
-      const prompt = `请总结以下网页内容，用简洁的中文概括主要信息：
+      const isEnglish = i18n.currentLang === 'en';
+      const prompt = isEnglish 
+        ? `Please summarize the following web page content concisely:
+
+Title: ${pageContent.title}
+URL: ${pageContent.url}
+
+Content:
+${pageContent.content}`
+        : `请总结以下网页内容，用简洁的中文概括主要信息：
 
 标题: ${pageContent.title}
 URL: ${pageContent.url}
@@ -669,7 +685,9 @@ URL: ${pageContent.url}
 内容:
 ${pageContent.content}`;
       
-      const systemPrompt = '你是一个专业的内容总结助手。请用简洁、准确的语言总结用户提供的网页内容，提取关键信息和主要观点。';
+      const systemPrompt = isEnglish
+        ? 'You are a professional content summarization assistant. Please summarize the web page content provided by the user in a concise and accurate manner, extracting key information and main points.'
+        : '你是一个专业的内容总结助手。请用简洁、准确的语言总结用户提供的网页内容，提取关键信息和主要观点。';
       
       // Save request for regeneration
       lastAiRequest = { prompt, systemPrompt, pageContent };
@@ -685,7 +703,7 @@ ${pageContent.content}`;
         }
       );
       
-      showToast('总结完成', 'success');
+      showToastI18n('summaryComplete', 'success');
     } catch (error) {
       if (error.name !== 'AbortError') {
         showToast(error.message, 'error');
@@ -709,7 +727,16 @@ ${pageContent.content}`;
     try {
       const pageContent = await getCurrentPageContent();
       
-      const prompt = `请根据以下网页内容，提取并整理出待办事项列表。如果内容中没有明显的待办事项，请根据内容的主题和要点，推断出可能需要完成的任务或行动项：
+      const isEnglish = i18n.currentLang === 'en';
+      const prompt = isEnglish
+        ? `Based on the following web page content, extract and organize a to-do list. If there are no obvious to-do items, infer possible tasks or action items based on the content's theme and key points:
+
+Title: ${pageContent.title}
+URL: ${pageContent.url}
+
+Content:
+${pageContent.content}`
+        : `请根据以下网页内容，提取并整理出待办事项列表。如果内容中没有明显的待办事项，请根据内容的主题和要点，推断出可能需要完成的任务或行动项：
 
 标题: ${pageContent.title}
 URL: ${pageContent.url}
@@ -717,7 +744,9 @@ URL: ${pageContent.url}
 内容:
 ${pageContent.content}`;
       
-      const systemPrompt = '你是一个专业的任务整理助手。请从用户提供的内容中提取待办事项，使用 Markdown 任务列表格式（- [ ] 任务内容）。每个任务应该简洁明确、可执行。如果内容中没有明确的待办事项，请根据内容推断可能需要的行动项。';
+      const systemPrompt = isEnglish
+        ? 'You are a professional task organization assistant. Please extract to-do items from the content provided by the user, using Markdown task list format (- [ ] task content). Each task should be concise, clear, and actionable. If there are no explicit to-do items in the content, infer possible action items based on the content.'
+        : '你是一个专业的任务整理助手。请从用户提供的内容中提取待办事项，使用 Markdown 任务列表格式（- [ ] 任务内容）。每个任务应该简洁明确、可执行。如果内容中没有明确的待办事项，请根据内容推断可能需要的行动项。';
       
       // Save request for regeneration
       lastAiRequest = { prompt, systemPrompt, pageContent };
@@ -733,7 +762,7 @@ ${pageContent.content}`;
         }
       );
       
-      showToast('待办事项已提取', 'success');
+      showToastI18n('todosExtracted', 'success');
     } catch (error) {
       if (error.name !== 'AbortError') {
         showToast(error.message, 'error');
@@ -763,7 +792,7 @@ ${pageContent.content}`;
     const question = aiQuestion.value.trim();
     
     if (!question) {
-      showToast('请输入问题', 'warning');
+      showToastI18n('enterQuestion', 'warning');
       return;
     }
     
@@ -777,7 +806,18 @@ ${pageContent.content}`;
     try {
       const pageContent = await getCurrentPageContent();
       
-      const prompt = `用户针对以下网页内容提出了问题，请回答：
+      const isEnglish = i18n.currentLang === 'en';
+      const prompt = isEnglish
+        ? `The user has a question about the following web page content. Please answer:
+
+Page Title: ${pageContent.title}
+Page URL: ${pageContent.url}
+
+Page Content:
+${pageContent.content}
+
+User Question: ${question}`
+        : `用户针对以下网页内容提出了问题，请回答：
 
 网页标题: ${pageContent.title}
 网页URL: ${pageContent.url}
@@ -801,7 +841,7 @@ ${pageContent.content}
         }
       );
       
-      showToast('AI 回复已生成', 'success');
+      showToastI18n('aiResponseGenerated', 'success');
     } catch (error) {
       if (error.name !== 'AbortError') {
         showToast(error.message, 'error');
@@ -827,7 +867,7 @@ ${pageContent.content}
     if (isStreaming) {
       abortAiRequest();
       isStreaming = false;
-      showToast('已中断', 'warning');
+      showToastI18n('interrupted', 'warning');
       
       // Reset button states
       summarizePageBtn.classList.remove('loading');
@@ -839,7 +879,7 @@ ${pageContent.content}
     }
     
     if (!lastAiRequest) {
-      showToast('没有可重新生成的请求', 'warning');
+      showToastI18n('noRequestToRegenerate', 'warning');
       return;
     }
     
@@ -862,7 +902,7 @@ ${pageContent.content}
         }
       );
       
-      showToast('已重新生成', 'success');
+      showToastI18n('regenerated', 'success');
     } catch (error) {
       if (error.name !== 'AbortError') {
         showToast(error.message, 'error');
@@ -878,22 +918,27 @@ ${pageContent.content}
   saveAiResponseBtn.addEventListener('click', async () => {
     const response = aiResponse.textContent;
     
-    if (!response || response === 'AI的回复将显示在这里') {
-      showToast('没有可保存的内容', 'warning');
+    if (!response || response === i18n.t('aiResponsePlaceholder')) {
+      showToastI18n('noContentToSave', 'warning');
       return;
     }
     
     saveAiResponseBtn.disabled = true;
-    saveAiResponseBtn.textContent = '保存中...';
+    const originalText = saveAiResponseBtn.querySelector('span[data-i18n="saveMemo"]');
+    if (originalText) {
+      originalText.textContent = i18n.t('saving');
+    }
     
     try {
       await createMemo(response, 'PRIVATE');
-      showToast('已保存为备忘', 'success');
+      showToastI18n('savedAsMemo', 'success');
     } catch (error) {
       showToast(error.message, 'error');
     } finally {
       saveAiResponseBtn.disabled = false;
-      saveAiResponseBtn.textContent = '保存为备忘';
+      if (originalText) {
+        originalText.textContent = i18n.t('saveMemo');
+      }
     }
   });
 });
