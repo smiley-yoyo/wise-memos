@@ -45,6 +45,7 @@ FILES=(
     "manifest.json"
     "popup.html"
     "popup.js"
+    "i18n.js"
     "styles.css"
     "icons/icon48.png"
     "icons/icon128.png"
